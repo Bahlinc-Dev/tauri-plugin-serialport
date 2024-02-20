@@ -18,10 +18,10 @@ fn get_serialport<T, F: FnOnce(&mut SerialportInfo) -> Result<T, Error>>(
         Ok(mut map) => match map.get_mut(&path) {
             Some(serialport_info) => f(serialport_info),
             None => {
-                Err(Error::String("未找到串口".to_string()))
+                Err(Error::String("Could not get lock".to_string()))
             }
         },
-        Err(error) =>  Err(Error::String(format!("获取文件锁失败! {} ", error))),
+        Err(error) =>  Err(Error::String(format!("Error: {} ", error))),
     }
 }
 
@@ -35,7 +35,7 @@ fn get_serialport<T, F: FnOnce(&mut SerialportInfo) -> Result<T, Error>>(
 //         Ok(mut map) => match map.get_mut(&path) {
 //             Some(serialport_info) => return f(serialport_info),
 //             None => {
-//                 return Err(Error::String(format!("未找到 {} 串口", &path)));
+//                 return Err(Error::String(format!("未找到 {} Path", &path)));
 //             }
 //         },
 //         Err(error) => return Err(Error::String(format!("获取文件锁失败! {} ", error))),
@@ -88,7 +88,7 @@ fn get_stop_bits(value: Option<usize>) -> StopBits {
     }
 }
 
-/// `available_ports` 获取串口列表
+/// `available_ports` 获取Path列表
 #[command]
 pub fn available_ports() -> Vec<String> {
     let mut list = match serialport::available_ports() {
@@ -102,12 +102,12 @@ pub fn available_ports() -> Vec<String> {
         name_list.push(i.port_name.clone());
     }
 
-    println!("串口列表: {:?}", &name_list);
+    println!("Port List: {:?}", &name_list);
 
     name_list
 }
 
-/// `cacel_read` 取消串口数据读取
+/// `cacel_read` 取消Path数据读取
 #[command]
 pub async fn cancel_read<R: Runtime>(
     _app: AppHandle<R>,
@@ -120,18 +120,18 @@ pub async fn cancel_read<R: Runtime>(
             Some(sender) => match sender.send(1) {
                 Ok(_) => {}
                 Err(error) => {
-                    return Err(Error::String(format!("取消串口数据读取失败: {}", error)));
+                    return Err(Error::String(format!("Error: {}", error)));
                 }
             },
             None => {}
         }
         serialport_info.sender = None;
-        println!("取消 {} 串口读取", &path);
+        println!("Path {}", &path);
         Ok(())
     })
 }
 
-/// `close` 关闭指定串口
+/// `close` 关闭指定Path
 #[command]
 pub fn close<R: Runtime>(
     _app: AppHandle<R>,
@@ -144,16 +144,16 @@ pub fn close<R: Runtime>(
             if serialports.remove(&path).is_some() {
                 Ok(())
             } else {
-                Err(Error::String(format!("串口 {} 未打开!", &path)))
+                Err(Error::String(format!("Path {}", &path)))
             }
         }
         Err(error) => {
-            Err(Error::String(format!("获取锁失败: {}", error)))
+            Err(Error::String(format!("Error: {}", error)))
         }
     }
 }
 
-/// `close_all` 关闭所有串口
+/// `close_all` 关闭所有Path
 #[command]
 pub fn close_all<R: Runtime>(
     _app: AppHandle<R>,
@@ -167,8 +167,8 @@ pub fn close_all<R: Runtime>(
                     match sender.send(1) {
                         Ok(_) => {}
                         Err(error) => {
-                            println!("取消串口数据读取失败: {}", error);
-                            return Err(Error::String(format!("取消串口数据读取失败: {}", error)));
+                            println!("Error: {}", error);
+                            return Err(Error::String(format!("Error: {}", error)));
                         }
                     }
                 }
@@ -177,12 +177,12 @@ pub fn close_all<R: Runtime>(
             Ok(())
         }
         Err(error) => {
-            Err(Error::String(format!("获取锁失败: {}", error)))
+            Err(Error::String(format!("Error: {}", error)))
         }
     }
 }
 
-/// `force_close` 强制关闭串口
+/// `force_close` 强制关闭Path
 #[command]
 pub fn force_close<R: Runtime>(
     _app: AppHandle<R>,
@@ -197,8 +197,8 @@ pub fn force_close<R: Runtime>(
                     match sender.send(1) {
                         Ok(_) => {}
                         Err(error) => {
-                            println!("取消串口数据读取失败: {}", error);
-                            return Err(Error::String(format!("取消串口数据读取失败: {}", error)));
+                            println!("Error: {}", error);
+                            return Err(Error::String(format!("Error: {}", error)));
                         }
                     }
                 }
@@ -209,12 +209,12 @@ pub fn force_close<R: Runtime>(
             }
         }
         Err(error) => {
-            Err(Error::String(format!("获取锁失败: {}", error)))
+            Err(Error::String(format!("Error: {}", error)))
         }
     }
 }
 
-/// `open` 打开指定串口
+/// `open` 打开指定Path
 #[command]
 pub fn open<R: Runtime>(
     _app: AppHandle<R>,
@@ -231,7 +231,7 @@ pub fn open<R: Runtime>(
     match state.serialports.lock() {
         Ok(mut serialports) => {
             if serialports.contains_key(&path) {
-                return Err(Error::String(format!("串口 {} 已打开!", path)));
+                return Err(Error::String(format!("Path {}", path)));
             }
             match serialport::new(path.clone(), baud_rate)
                 .data_bits(get_data_bits(data_bits))
@@ -250,19 +250,19 @@ pub fn open<R: Runtime>(
                     Ok(())
                 }
                 Err(error) => Err(Error::String(format!(
-                    "创建串口 {} 失败: {}",
+                    "Port {} Error: {}",
                     path,
                     error.description
                 ))),
             }
         }
         Err(error) => {
-            Err(Error::String(format!("获取锁失败: {}", error)))
+            Err(Error::String(format!("Error: {}", error)))
         }
     }
 }
 
-/// `read` 读取指定串口
+/// `read` 读取指定Path
 #[command]
 pub fn read<R: Runtime>(
     _app: AppHandle<R>,
@@ -274,10 +274,10 @@ pub fn read<R: Runtime>(
 ) -> Result<(), Error> {
     get_serialport(state.clone(), path.clone(), |serialport_info| {
         if serialport_info.sender.is_some() {
-            println!("串口 {} 已经在读取数据中!", &path);
+            println!("Path {} ", &path);
             Ok(())
         } else {
-            println!("串口 {} 开始读取数据!", &path);
+            println!("Path {}", &path);
             match serialport_info.serialport.try_clone() {
                 Ok(mut serial) => {
                     let read_event = format!("plugin-serialport-read-{}", &path);
@@ -286,12 +286,12 @@ pub fn read<R: Runtime>(
                     thread::spawn(move || loop {
                         match rx.try_recv() {
                             Ok(_) => {
-                                println!("串口 {} 停止读取数据!", &path);
+                                println!("Path {}", &path);
                                 break;
                             }
                             Err(error) => match error {
                                 TryRecvError::Disconnected => {
-                                    println!("串口 {} 断开连接!", &path);
+                                    println!("Path {}", &path);
                                     break;
                                 }
                                 TryRecvError::Empty => {}
@@ -300,7 +300,7 @@ pub fn read<R: Runtime>(
                         let mut serial_buf: Vec<u8> = vec![0; size.unwrap_or(1024)];
                         match serial.read(serial_buf.as_mut_slice()) {
                             Ok(size) => {
-                                println!("串口 {} 读取数据大小: {}", &path, size);
+                                println!("Path {} Size: {}", &path, size);
                                 match window.emit(
                                     &read_event,
                                     ReadData {
@@ -310,7 +310,7 @@ pub fn read<R: Runtime>(
                                 ) {
                                     Ok(_) => {}
                                     Err(error) => {
-                                        println!("发送数据失败: {}", error)
+                                        println!("Error: {}", error)
                                     }
                                 }
                             }
@@ -322,7 +322,7 @@ pub fn read<R: Runtime>(
                     });
                 }
                 Err(error) => {
-                    return Err(Error::String(format!("读取 {} 串口失败: {}", &path, error)));
+                    return Err(Error::String(format!("Path {} Error: {}", &path, error)));
                 }
             }
             Ok(())
@@ -330,7 +330,7 @@ pub fn read<R: Runtime>(
     })
 }
 
-/// `write` 写入指定串口
+/// `write` 写入指定Path
 #[command]
 pub fn write<R: Runtime>(
     _app: AppHandle<R>,
@@ -346,7 +346,7 @@ pub fn write<R: Runtime>(
         }
             Err(error) => {
                 Err(Error::String(format!(
-                    "写入串口 {} 数据失败: {}",
+                    "Path {} Error: {}",
                     &path, error
                 )))
             }
@@ -354,7 +354,7 @@ pub fn write<R: Runtime>(
     })
 }
 
-/// `write` 写入二进制内容到指定串口
+/// `write` 写入二进制内容到指定Path
 #[command]
 pub fn write_binary<R: Runtime>(
     _app: AppHandle<R>,
@@ -372,7 +372,7 @@ pub fn write_binary<R: Runtime>(
         }
         Err(error) => {
             Err(Error::String(format!(
-                "写入串口 {} 数据失败: {}",
+                "Path {} Error: {}",
                 &path, error
             )))
         }
